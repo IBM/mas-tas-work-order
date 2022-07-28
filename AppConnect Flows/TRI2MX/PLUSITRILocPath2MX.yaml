@@ -1,0 +1,616 @@
+$integration: http://ibm.com/appconnect/integration/v2/integrationFile
+integration:
+  type: api
+  trigger-interfaces:
+    trigger-interface-1:
+      triggers:
+        synclocpathMxLocPath:
+          assembly:
+            $ref: '#/integration/assemblies/assembly-1'
+          input-context:
+            data: tripath
+          output-context:
+            data: mxLocPath
+      options:
+        resources:
+          - business-object: triLocPath
+            model:
+              $ref: '#/models/triLocPath'
+            triggers: {}
+          - business-object: mxLocPath
+            model:
+              $ref: '#/models/mxLocPath'
+            triggers:
+              synclocpath: synclocpathMxLocPath
+          - business-object: tripath
+            model:
+              $ref: '#/models/tripath'
+            triggers: {}
+      type: api-trigger
+  action-interfaces:
+    action-interface-2:
+      type: api-action
+      business-object: request
+      connector-type: http
+      account-name: PLUSTTogas-SecGW
+      actions:
+        INVOKE: {}
+  assemblies:
+    assembly-1:
+      assembly:
+        execute:
+          - if:
+              name: If
+              input:
+                - variable: Request
+                  $ref: '#/trigger/payload'
+                - variable: api
+                  $ref: '#/trigger/api/parameters'
+                - variable: flowDetails
+                  $ref: '#/flowDetails'
+              branch:
+                - condition:
+                    '{{$uppercase($api.locType)}}': PROPERTY
+                  execute:
+                    - parse:
+                        name: JSON Parser Parse
+                        parse-format: json
+                        source:
+                          template: '{{$Request}}'
+                          input:
+                            - variable: Request
+                              $ref: '#/trigger/payload'
+                            - variable: api
+                              $ref: '#/trigger/api/parameters'
+                            - variable: flowDetails
+                              $ref: '#/flowDetails'
+                        sample-data: |-
+                          {
+                            "data": [
+                              {
+                                "Accounting Cost Center": "",
+                                "Address": "",
+                                "City": "",
+                                "Description": "",
+                                "Hierarchy Path": "\\Locations\\TestProp",
+                                "ID": "1000008",
+                                "Jurisdiction": "",
+                                "Name": "TestProp",
+                                "Primary Use": "",
+                                "Property Class": "",
+                                "State/Province": "",
+                                "Tenure": "",
+                                "Zip/Postal Code": "",
+                                "Zoning": "",
+                                "boId": 10002586,
+                                "recordId": 135558165
+                              }]
+                          }
+                        output-schema:
+                          $schema: http://json-schema.org/draft-04/schema#
+                          type: object
+                          properties:
+                            data:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  Accounting Cost Center:
+                                    type: string
+                                  Address:
+                                    type: string
+                                  City:
+                                    type: string
+                                  Description:
+                                    type: string
+                                  Hierarchy Path:
+                                    type: string
+                                  ID:
+                                    type: string
+                                  Jurisdiction:
+                                    type: string
+                                  Name:
+                                    type: string
+                                  Primary Use:
+                                    type: string
+                                  Property Class:
+                                    type: string
+                                  State/Province:
+                                    type: string
+                                  Tenure:
+                                    type: string
+                                  Zip/Postal Code:
+                                    type: string
+                                  Zoning:
+                                    type: string
+                                  boId:
+                                    type: number
+                                  recordId:
+                                    type: number
+                          title: Parsed JSON
+                  map:
+                    $map: http://ibm.com/appconnect/map/v1
+                    input:
+                      - variable: Request
+                        $ref: '#/trigger/payload'
+                      - variable: api
+                        $ref: '#/trigger/api/parameters'
+                      - variable: JSONParserParse
+                        $ref: >-
+                          #/block/If/node-output/JSON Parser
+                          Parse/response/payload
+                      - variable: flowDetails
+                        $ref: '#/flowDetails'
+                    mappings:
+                      - data:
+                          expression: $JSONParserParse.data
+                - condition:
+                    '{{$uppercase($api.locType)}}': BUILDING
+                  execute:
+                    - parse:
+                        name: JSON Parser Parse 2
+                        parse-format: json
+                        source:
+                          template: '{{$Request}}'
+                          input:
+                            - variable: Request
+                              $ref: '#/trigger/payload'
+                            - variable: api
+                              $ref: '#/trigger/api/parameters'
+                            - variable: flowDetails
+                              $ref: '#/flowDetails'
+                        sample-data: |-
+                          {
+                            "data": [
+                              {
+                                "boId": 10002100,
+                                "Tenure": "",
+                                "Primary Use": "",
+                                "In Service Date": "2022-04-22",
+                                "State/Province": "",
+                                "Name": "Bldg-ABC",
+                                "Description": "",
+                                "Hierarchy Path": "\\Locations\\TestProp\\Bldg-ABC",
+                                "Address": "",
+                                "ID": "1000003",
+                                "Jurisdiction": "",
+                                "recordId": 135558172,
+                                "Zip/Postal Code": "",
+                                "Building Class": "",
+                                "City": "",
+                                "Parent Property": "TestProp",
+                                "Zoning": ""
+                              }]
+                          }
+                        output-schema:
+                          $schema: http://json-schema.org/draft-04/schema#
+                          type: object
+                          properties:
+                            data:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  boId:
+                                    type: number
+                                  Tenure:
+                                    type: string
+                                  Primary Use:
+                                    type: string
+                                  In Service Date:
+                                    type: string
+                                  State/Province:
+                                    type: string
+                                  Name:
+                                    type: string
+                                  Description:
+                                    type: string
+                                  Hierarchy Path:
+                                    type: string
+                                  Address:
+                                    type: string
+                                  ID:
+                                    type: string
+                                  Jurisdiction:
+                                    type: string
+                                  recordId:
+                                    type: number
+                                  Zip/Postal Code:
+                                    type: string
+                                  Building Class:
+                                    type: string
+                                  City:
+                                    type: string
+                                  Parent Property:
+                                    type: string
+                                  Zoning:
+                                    type: string
+                          title: Parsed JSON
+                  map:
+                    $map: http://ibm.com/appconnect/map/v1
+                    input:
+                      - variable: Request
+                        $ref: '#/trigger/payload'
+                      - variable: api
+                        $ref: '#/trigger/api/parameters'
+                      - variable: JSONParserParse2
+                        $ref: >-
+                          #/block/If/node-output/JSON Parser Parse
+                          2/response/payload
+                      - variable: flowDetails
+                        $ref: '#/flowDetails'
+                    mappings:
+                      - data:
+                          expression: $JSONParserParse2.data
+                - condition:
+                    '{{$uppercase($api.locType)}}': FLOOR
+                  execute:
+                    - parse:
+                        name: JSON Parser Parse 3
+                        parse-format: json
+                        source:
+                          template: '{{$Request}}'
+                          input:
+                            - variable: Request
+                              $ref: '#/trigger/payload'
+                            - variable: api
+                              $ref: '#/trigger/api/parameters'
+                            - variable: flowDetails
+                              $ref: '#/flowDetails'
+                        sample-data: |-
+                          {
+                            "data": [
+                              {
+                                "Accounting Cost Center": "",
+                                "Active End Date": "",
+                                "Area Units": "square-feet",
+                                "Bar Code Entry": "1000008",
+                                "Capacity": "0",
+                                "Description": "",
+                                "Floor Class": "",
+                                "Floor Level": "1",
+                                "Gross Area": "2,200",
+                                "Gross Measured Area": "2,200",
+                                "Hierarchy Path": "\\Locations\\TestProp\\TestStructure\\Flr-X",
+                                "ID": "1000008",
+                                "Name": "Flr-X",
+                                "Parent Building": "TestStructure",
+                                "Primary Use": "",
+                                "Tenure": "",
+                                "boId": 10002582,
+                                "recordId": 135558273
+                              }]
+                          }
+                        output-schema:
+                          $schema: http://json-schema.org/draft-04/schema#
+                          type: object
+                          properties:
+                            data:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  Accounting Cost Center:
+                                    type: string
+                                  Active End Date:
+                                    type: string
+                                  Area Units:
+                                    type: string
+                                  Bar Code Entry:
+                                    type: string
+                                  Capacity:
+                                    type: string
+                                  Description:
+                                    type: string
+                                  Floor Class:
+                                    type: string
+                                  Floor Level:
+                                    type: string
+                                  Gross Area:
+                                    type: string
+                                  Gross Measured Area:
+                                    type: string
+                                  Hierarchy Path:
+                                    type: string
+                                  ID:
+                                    type: string
+                                  Name:
+                                    type: string
+                                  Parent Building:
+                                    type: string
+                                  Primary Use:
+                                    type: string
+                                  Tenure:
+                                    type: string
+                                  boId:
+                                    type: number
+                                  recordId:
+                                    type: number
+                          title: Parsed JSON
+                  map:
+                    $map: http://ibm.com/appconnect/map/v1
+                    input:
+                      - variable: Request
+                        $ref: '#/trigger/payload'
+                      - variable: api
+                        $ref: '#/trigger/api/parameters'
+                      - variable: JSONParserParse3
+                        $ref: >-
+                          #/block/If/node-output/JSON Parser Parse
+                          3/response/payload
+                      - variable: flowDetails
+                        $ref: '#/flowDetails'
+                    mappings:
+                      - data:
+                          expression: $JSONParserParse3.data
+              else:
+                execute: []
+                completion-action:
+                  terminate:
+                    error:
+                      input:
+                        - variable: Request
+                          $ref: '#/trigger/payload'
+                        - variable: api
+                          $ref: '#/trigger/api/parameters'
+                        - variable: flowDetails
+                          $ref: '#/flowDetails'
+                      message: Please check the input Supplied
+                      status-code: 400
+              output-schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties: {}
+                required:
+                  - data
+          - set-variable:
+              name: Set variable
+              map:
+                $map: http://ibm.com/appconnect/map/v1
+                customSchemas:
+                  properties.`variable`:
+                    type: object
+                    properties:
+                      mxLocPath:
+                        type: object
+                        properties:
+                          _action:
+                            type: string
+                          domainid:
+                            type: string
+                          alndomain:
+                            type: array
+                            items:
+                              type: object
+                              properties: {}
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: If
+                    $ref: '#/node-output/If/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+                mappings:
+                  - variable:
+                      mappings:
+                        - mxLocPath:
+                            mappings:
+                              - _action:
+                                  template: AddChange
+                              - alndomain:
+                                  expression: >-
+                                    $map($If.data, function($v, $i) { {       
+                                    "description": $length($v.'Hierarchy
+                                    Path')>100?$pad($substring($v."Hierarchy
+                                    Path" , -97), -100, "***"):$v."Hierarchy
+                                    Path",                "value":
+                                    $v.recordId    }})
+                              - domainid:
+                                  template: '{{$api.mxDomain}}'
+          - custom-action:
+              name: HTTP Invoke method
+              target:
+                $ref: '#/integration/action-interfaces/action-interface-2'
+              action: INVOKE
+              map:
+                customSchemas:
+                  properties.`requestHeaders`:
+                    type: object
+                    properties:
+                      Content-Type:
+                        type: string
+                      x-method-override:
+                        type: string
+                mappings:
+                  - continue2xx:
+                      expression: 'false'
+                  - method:
+                      template: POST
+                  - requestBody:
+                      template: '{{$Setvariable.variable.mxLocPath}}'
+                  - requestHeaders:
+                      mappings:
+                        - Content-Type:
+                            template: application/json
+                        - x-method-override:
+                            template: SYNC
+                  - url:
+                      template: '{{$api.mxUrl}}'
+                $map: http://ibm.com/appconnect/map/v1
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: If
+                    $ref: '#/node-output/If/response/payload'
+                  - variable: Setvariable
+                    $ref: '#/node-output/Set variable/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+          - set-variable:
+              name: Set variable 2
+              map:
+                $map: http://ibm.com/appconnect/map/v1
+                customSchemas:
+                  properties.`variable`:
+                    type: object
+                    properties:
+                      locPathSent:
+                        type: object
+                        properties:
+                          mxPayload:
+                            type: object
+                            properties: {}
+                          mxResponse:
+                            type: object
+                            properties: {}
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: If
+                    $ref: '#/node-output/If/response/payload'
+                  - variable: Setvariable
+                    $ref: '#/node-output/Set variable/response/payload'
+                  - variable: HTTPInvokemethod
+                    $ref: '#/node-output/HTTP Invoke method/response/payload'
+                  - variable: HTTPInvokemethodMetadata
+                    $ref: '#/node-output/HTTP Invoke method/response'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+                mappings:
+                  - variable:
+                      mappings:
+                        - locPathSent:
+                            mappings:
+                              - mxPayload:
+                                  expression: $Setvariable.variable.mxLocPath
+                              - mxResponse:
+                                  expression: $HTTPInvokemethodMetadata
+          - response:
+              name: response-1
+              reply-maps:
+                - title: triBuildingEquipSpec successfully add custom operation
+                  status-code: 200
+                  map:
+                    $map: http://ibm.com/appconnect/map/v1
+                    input:
+                      - variable: Request
+                        $ref: '#/trigger/payload'
+                      - variable: api
+                        $ref: '#/trigger/api/parameters'
+                      - variable: If
+                        $ref: '#/node-output/If/response/payload'
+                      - variable: Setvariable
+                        $ref: '#/node-output/Set variable/response/payload'
+                      - variable: HTTPInvokemethod
+                        $ref: '#/node-output/HTTP Invoke method/response/payload'
+                      - variable: HTTPInvokemethodMetadata
+                        $ref: '#/node-output/HTTP Invoke method/response'
+                      - variable: Setvariable2
+                        $ref: '#/node-output/Set variable 2/response/payload'
+                      - variable: flowDetails
+                        $ref: '#/flowDetails'
+                    mappings:
+                      - locPathSent:
+                          expression: $Setvariable2.variable.locPathSent
+                  input: []
+  name: PLUSITRILocPath2MX
+models:
+  triLocPath:
+    name: triLocPath
+    properties:
+      dummyID:
+        required: false
+        id: true
+        type: string
+      data:
+        required: false
+        id: false
+        type:
+          - type: {}
+      continueToken:
+        required: false
+        id: false
+        type: string
+      header:
+        required: false
+        id: false
+        type:
+          - string
+      totalRows:
+        required: false
+        id: false
+        type: string
+    plural: triLocPath
+    description: ' '
+    operations: {}
+  mxLocPath:
+    name: mxLocPath
+    properties:
+      dummyId:
+        required: false
+        id: true
+        type: number
+      locPathSent:
+        required: false
+        id: false
+        type: {}
+    plural: mxLocPath
+    description: ' '
+    operations:
+      synclocpath: '#/integration/assemblies/assembly-1'
+    methods:
+      synclocpath:
+        name: synclocpath
+        display:
+          name: syncLocPath
+        accessType: WRITE
+        accepts:
+          - arg: data
+            type: tripath
+            http:
+              source: body
+          - arg: mxUrl
+            type: string
+            http:
+              source: query
+          - arg: locType
+            type: string
+            http:
+              source: query
+          - arg: mxDomain
+            type: string
+            http:
+              source: query
+        returns:
+          arg: data
+          type: mxLocPath
+          root: true
+        http:
+          verb: POST
+          path: /synclocpath
+        description: inserting Tririga Location Path details to Maximo
+  tripath:
+    name: tripath
+    properties:
+      id:
+        required: false
+        id: true
+        type: string
+      data:
+        required: false
+        id: false
+        type:
+          - type: {}
+    plural: tripath
+    description: ' '
+    operations: {}

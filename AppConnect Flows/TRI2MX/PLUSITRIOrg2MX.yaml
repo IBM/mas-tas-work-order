@@ -1,0 +1,304 @@
+$integration: http://ibm.com/appconnect/integration/v2/integrationFile
+integration:
+  type: api
+  trigger-interfaces:
+    trigger-interface-1:
+      triggers:
+        syncorgMxOrg:
+          assembly:
+            $ref: '#/integration/assemblies/assembly-1'
+          input-context:
+            data: triOrg
+          output-context:
+            data: mxOrg
+      options:
+        resources:
+          - business-object: mxOrg
+            model:
+              $ref: '#/models/mxOrg'
+            triggers:
+              syncorg: syncorgMxOrg
+          - business-object: triOrg
+            model:
+              $ref: '#/models/triOrg'
+            triggers: {}
+      type: api-trigger
+  action-interfaces:
+    action-interface-2:
+      type: api-action
+      business-object: request
+      connector-type: http
+      account-name: mxObturate1
+      actions:
+        INVOKE: {}
+  assemblies:
+    assembly-1:
+      assembly:
+        execute:
+          - parse:
+              name: JSON Parser Parse
+              parse-format: json
+              source:
+                template: '{{$Request}}'
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+              sample-data: |-
+                {
+                   "data":[
+                      {
+                      "Status": "Active",
+                      "recordId": 135541375,
+                      "ID": "1000554",
+                      "Name": "Amazon",
+                      "Hierarchy Path": "\\Organizations\\Amazon",
+                      "boId": 103804
+                    }
+                   ]
+                }
+              output-schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Status:
+                          type: string
+                        recordId:
+                          type: number
+                        ID:
+                          type: string
+                        Name:
+                          type: string
+                        Hierarchy Path:
+                          type: string
+                        boId:
+                          type: number
+                title: Parsed JSON
+          - set-variable:
+              name: Set variable
+              map:
+                $map: http://ibm.com/appconnect/map/v1
+                customSchemas:
+                  properties.`variable`:
+                    type: object
+                    properties:
+                      mxOrganization:
+                        type: object
+                        properties:
+                          _action:
+                            type: string
+                          domainid:
+                            type: string
+                          alndomain:
+                            type: array
+                            items:
+                              type: object
+                              properties: {}
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: JSONParserParse
+                    $ref: '#/node-output/JSON Parser Parse/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+                mappings:
+                  - variable:
+                      mappings:
+                        - mxOrganization:
+                            mappings:
+                              - _action:
+                                  template: AddChange
+                              - alndomain:
+                                  expression: >-
+                                    $map($JSONParserParse.data, function($v, $i)
+                                    {    {        "description":
+                                    $length($v.'Hierarchy
+                                    Path')>100?$pad($substring($v."Hierarchy
+                                    Path" , -97), -100, "***"):$v."Hierarchy
+                                    Path",                "value":
+                                    $v.recordId    }    })
+                              - domainid:
+                                  template: '{{$api.mxDomain}}'
+          - custom-action:
+              name: HTTP Invoke method
+              target:
+                $ref: '#/integration/action-interfaces/action-interface-2'
+              action: INVOKE
+              map:
+                customSchemas:
+                  properties.`requestHeaders`:
+                    type: object
+                    properties:
+                      Content-Type:
+                        type: string
+                      x-method-override:
+                        type: string
+                mappings:
+                  - continue2xx:
+                      expression: 'false'
+                  - method:
+                      template: POST
+                  - requestBody:
+                      template: '{{$Setvariable.variable.mxOrganization}}'
+                  - requestHeaders:
+                      mappings:
+                        - Content-Type:
+                            template: application/json
+                        - x-method-override:
+                            template: SYNC
+                  - url:
+                      template: '{{$api.mxUrl}}'
+                $map: http://ibm.com/appconnect/map/v1
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: JSONParserParse
+                    $ref: '#/node-output/JSON Parser Parse/response/payload'
+                  - variable: Setvariable
+                    $ref: '#/node-output/Set variable/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+          - set-variable:
+              name: Set variable 2
+              map:
+                $map: http://ibm.com/appconnect/map/v1
+                customSchemas:
+                  properties.`variable`:
+                    type: object
+                    properties:
+                      triOrgSent:
+                        type: object
+                        properties:
+                          mxPaylod:
+                            type: object
+                            properties: {}
+                          mxResponse:
+                            type: object
+                            properties: {}
+                input:
+                  - variable: Foreachitem
+                    $ref: '#/block/For each/current-item'
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: Setvariable
+                    $ref: '#/block/For each/node-output/Set variable/response/payload'
+                  - variable: HTTPInvokemethod
+                    $ref: >-
+                      #/block/For each/node-output/HTTP Invoke
+                      method/response/payload
+                  - variable: HTTPInvokemethodMetadata
+                    $ref: '#/block/For each/node-output/HTTP Invoke method/response'
+                  - variable: JSONParserParse
+                    $ref: '#/node-output/JSON Parser Parse/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+                mappings:
+                  - variable:
+                      mappings:
+                        - triOrgSent:
+                            mappings:
+                              - mxPaylod:
+                                  expression: $Setvariable.variable.mxOrganization
+                              - mxResponse:
+                                  expression: $HTTPInvokemethodMetadata
+          - response:
+              name: response-1
+              reply-maps:
+                - title: mxReqClass successfully add custom operation
+                  status-code: 200
+                  map:
+                    $map: http://ibm.com/appconnect/map/v1
+                    input:
+                      - variable: Request
+                        $ref: '#/trigger/payload'
+                      - variable: api
+                        $ref: '#/trigger/api/parameters'
+                      - variable: JSONParserParse
+                        $ref: '#/node-output/JSON Parser Parse/response/payload'
+                      - variable: Setvariable
+                        $ref: '#/node-output/Set variable/response/payload'
+                      - variable: HTTPInvokemethod
+                        $ref: '#/node-output/HTTP Invoke method/response/payload'
+                      - variable: HTTPInvokemethodMetadata
+                        $ref: '#/node-output/HTTP Invoke method/response'
+                      - variable: Setvariable2
+                        $ref: '#/node-output/Set variable 2/response/payload'
+                      - variable: flowDetails
+                        $ref: '#/flowDetails'
+                    mappings:
+                      - orgSent:
+                          expression: $Setvariable2.variable.triOrgSent
+                  input: []
+  name: PLUSITRIOrg2MX
+models:
+  mxOrg:
+    name: mxOrg
+    properties:
+      dummyID:
+        required: false
+        id: true
+        type: string
+      orgSent:
+        required: false
+        id: false
+        type: {}
+    plural: mxOrg
+    description: ' '
+    operations:
+      syncorg: '#/integration/assemblies/assembly-1'
+    methods:
+      syncorg:
+        name: syncorg
+        display:
+          name: syncOrg
+        accessType: WRITE
+        accepts:
+          - arg: data
+            type: triOrg
+            http:
+              source: body
+          - arg: mxUrl
+            type: string
+            http:
+              source: query
+          - arg: mxDomain
+            type: string
+            http:
+              source: query
+        returns:
+          arg: data
+          type: mxOrg
+          root: true
+        http:
+          verb: POST
+          path: /syncorg
+        description: inserting Tririga organization path to maximo
+  triOrg:
+    name: triOrg
+    properties:
+      dummyID:
+        required: false
+        id: true
+        type: string
+      data:
+        required: false
+        id: false
+        type:
+          - type: {}
+    plural: triOrg
+    description: ' '
+    operations: {}
