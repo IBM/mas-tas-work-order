@@ -1,0 +1,494 @@
+$integration: http://ibm.com/appconnect/integration/v2/integrationFile
+integration:
+  type: api
+  trigger-interfaces:
+    trigger-interface-1:
+      triggers:
+        syncworkorderMxWO:
+          assembly:
+            $ref: '#/integration/assemblies/assembly-1'
+          input-context:
+            data: triWO
+          output-context:
+            data: mxWO
+      options:
+        resources:
+          - business-object: triWO
+            model:
+              $ref: '#/models/triWO'
+            triggers: {}
+          - business-object: mxWO
+            model:
+              $ref: '#/models/mxWO'
+            triggers:
+              syncworkorder: syncworkorderMxWO
+      type: api-trigger
+  action-interfaces:
+    action-interface-2:
+      type: api-action
+      business-object: request
+      connector-type: http
+      account-name: trimaximo
+      actions:
+        INVOKE: {}
+  assemblies:
+    assembly-1:
+      assembly:
+        execute:
+          - parse:
+              name: JSON Parser Parse
+              parse-format: json
+              source:
+                template: '{{$Request}}'
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+              sample-data: |-
+                {
+                  "data": [
+                    {
+                      "Actual Start": "",
+                      "Task Type": "Corrective",
+                      "Responsible Organization Name": "DEFAULT Workgroup (for Default Service Plans)",
+                      "Description": "Devices not opearble in spc 009 1st room",
+                      "Planned End": "2022-03-30 11:24 AM UTC",
+                      "boId": 10008284,
+                      "Service Request ID": "1000087",
+                      "Primary Work Location": "\\Locations\\Maximo Property\\Maximo Building",
+                      "Planned Start": "2022-03-28 11:24 AM UTC",
+                      "Request Class": "Other Electrical",
+                      "Name": "DEFAULT - Work Task Template - Corrective Maintenance-Other Electrical",
+                      "recordId": 135551011,
+                      "Service Class": "Electrical",
+                      "Geography Lookup": "\\Geography\\North America\\United States\\Arkansas\\Bentonville",
+                      "Task Priority": "Medium",
+                      "Contract Name": "DEFAULT - Service Agreement",
+                      "Responsible Person Name": "",
+                      "Organization Record ID": "135499332",
+                      "Location Record ID": "135501660",
+                      "Customer Organization": "\\Organizations\\Maximo Org",
+                      "ID": "1037541"
+                    }
+                  ],
+                  "continueToken": "",
+                  "header": [
+                    "ID",
+                    "Name",
+                    "Description",
+                    "Task Type",
+                    "Task Priority",
+                    "Request Class",
+                    "Service Class",
+                    "Primary Work Location",
+                    "Geography Lookup",
+                    "Customer Organization",
+                    "Planned Start",
+                    "Planned End",
+                    "Actual Start",
+                    "Contract Name",
+                    "Responsible Organization Name",
+                    "Responsible Person Name",
+                    "Service Request ID"
+                  ],
+                  "totalRows": 1
+                }
+              output-schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Actual Start:
+                          type: string
+                        Task Type:
+                          type: string
+                        Responsible Organization Name:
+                          type: string
+                        Description:
+                          type: string
+                        Planned End:
+                          type: string
+                        boId:
+                          type: number
+                        Service Request ID:
+                          type: string
+                        Primary Work Location:
+                          type: string
+                        Planned Start:
+                          type: string
+                        Request Class:
+                          type: string
+                        Name:
+                          type: string
+                        recordId:
+                          type: number
+                        Service Class:
+                          type: string
+                        Geography Lookup:
+                          type: string
+                        Task Priority:
+                          type: string
+                        Contract Name:
+                          type: string
+                        Responsible Person Name:
+                          type: string
+                        Organization Record ID:
+                          type: string
+                        Location Record ID:
+                          type: string
+                        Customer Organization:
+                          type: string
+                        ID:
+                          type: string
+                  continueToken:
+                    type: string
+                  header:
+                    type: array
+                    items:
+                      type: string
+                  totalRows:
+                    type: number
+                title: Parsed JSON
+          - for-each:
+              name: For each
+              assembly:
+                $ref: '#/integration/assemblies/assembly-2'
+              source:
+                expression: '$JSONParserParse.data '
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: JSONParserParse
+                    $ref: '#/node-output/JSON Parser Parse/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+              mode: parallel
+              continue-on-error: false
+              map:
+                $map: http://ibm.com/appconnect/map/v1
+                input:
+                  - variable: Foreachitem
+                    $ref: '#/block/For each/current-item'
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: Setvariable
+                    $ref: '#/block/For each/node-output/Set variable/response/payload'
+                  - variable: HTTPInvokemethod
+                    $ref: >-
+                      #/block/For each/node-output/HTTP Invoke
+                      method/response/payload
+                  - variable: HTTPInvokemethodMetadata
+                    $ref: '#/block/For each/node-output/HTTP Invoke method/response'
+                  - variable: Setvariable2
+                    $ref: >-
+                      #/block/For each/node-output/Set variable
+                      2/response/payload
+                  - variable: JSONParserParse
+                    $ref: '#/node-output/JSON Parser Parse/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+                customSchemas:
+                  properties.`output`:
+                    type: object
+                    properties:
+                      WorkTask4mTririga:
+                        type: array
+                        items:
+                          type: object
+                          properties: {}
+                mappings:
+                  - output:
+                      mappings:
+                        - WorkTask4mTririga:
+                            expression: $append([],$JSONParserParse.data.ID )
+              display-name: Tri Work Task
+          - response:
+              name: response-1
+              reply-maps:
+                - title: mxPerson successfully add custom operation
+                  status-code: '200'
+                  map:
+                    $map: http://ibm.com/appconnect/map/v1
+                    input:
+                      - variable: Request
+                        $ref: '#/trigger/payload'
+                      - variable: api
+                        $ref: '#/trigger/api/parameters'
+                      - variable: JSONParserParse
+                        $ref: '#/node-output/JSON Parser Parse/response/payload'
+                      - variable: Foreach
+                        $ref: '#/node-output/For each/response/payload'
+                      - variable: flowDetails
+                        $ref: '#/flowDetails'
+                    mappings:
+                      - woSent:
+                          expression: '$Foreach.output.WorkTask4mTririga '
+                  input:
+                    - variable: Request
+                      $ref: '#/trigger/payload'
+                    - variable: JSONParserParse
+                      $ref: '#/node-output/JSON Parser Parse/response/payload'
+                    - variable: Foreach
+                      $ref: '#/node-output/For each/response/payload'
+    assembly-2:
+      assembly:
+        execute:
+          - set-variable:
+              name: Set variable
+              map:
+                $map: http://ibm.com/appconnect/map/v1
+                input:
+                  - variable: Foreachitem
+                    $ref: '#/block/For each/current-item'
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: JSONParserParse
+                    $ref: '#/node-output/JSON Parser Parse/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+                customSchemas:
+                  properties.`variable`:
+                    type: object
+                    properties:
+                      mxWorkOder:
+                        type: object
+                        properties:
+                          _action:
+                            type: string
+                          wonum:
+                            type: string
+                          description:
+                            type: string
+                          estdur:
+                            type: number
+                          statusdate:
+                            type: string
+                            format: date-time
+                          wopriority:
+                            type: string
+                          schedstart:
+                            type: string
+                          plusilocpath:
+                            type: string
+                          plusilocpath_description:
+                            type: string
+                          plusiorgpath:
+                            type: string
+                          plusiorgpath_description:
+                            type: string
+                          description_longdescription:
+                            type: string
+                          externalrefid:
+                            type: string
+                          schedfinish:
+                            type: string
+                mappings:
+                  - variable:
+                      mappings:
+                        - mxWorkOder:
+                            mappings:
+                              - _action:
+                                  template: AddChange
+                              - description:
+                                  template: '{{$Foreachitem.Name}}'
+                              - description_longdescription:
+                                  template: '{{$Foreachitem.Description}}'
+                              - externalrefid:
+                                  template: '{{$Foreachitem.recordId}}'
+                              - plusilocpath:
+                                  template: '{{$Foreachitem."Location Record ID"}}'
+                              - plusiorgpath:
+                                  template: '{{$Foreachitem."Organization Record ID"}}'
+                              - schedfinish:
+                                  template: >-
+                                    {{$toMillis($Foreachitem."Planned End"  ,
+                                    '[D]/[M]/[Y] [H]:[m]:[s]')~>
+                                    $fromMillis('[Y]-[M00]-[D00]T[H00]:[m00]:[s00][Z]')}}
+                              - schedstart:
+                                  template: >-
+                                    {{$toMillis($Foreachitem."Planned Start" ,
+                                    '[D]/[M]/[Y] [H]:[m]:[s]')~>
+                                    $fromMillis('[Y]-[M00]-[D00]T[H00]:[m00]:[s00][Z]')}}
+                              - wonum:
+                                  template: '{{$Foreachitem.ID}}'
+                              - wopriority:
+                                  template: '{{$Foreachitem."Task Priority"}}'
+          - custom-action:
+              name: HTTP Invoke method
+              target:
+                $ref: '#/integration/action-interfaces/action-interface-2'
+              action: INVOKE
+              map:
+                customSchemas:
+                  properties.`requestHeaders`:
+                    type: object
+                    properties:
+                      Content-Type:
+                        type: string
+                      x-method-override:
+                        type: string
+                mappings:
+                  - continue2xx:
+                      expression: 'false'
+                  - method:
+                      template: POST
+                  - requestBody:
+                      template: '{{$Setvariable.variable.mxWorkOder}}'
+                  - requestHeaders:
+                      mappings:
+                        - Content-Type:
+                            template: application/json
+                        - x-method-override:
+                            template: SYNC
+                  - url:
+                      template: '{{$api.mxUrl}}'
+                $map: http://ibm.com/appconnect/map/v1
+                input:
+                  - variable: Foreachitem
+                    $ref: '#/block/For each/current-item'
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: Setvariable
+                    $ref: '#/block/For each/node-output/Set variable/response/payload'
+                  - variable: JSONParserParse
+                    $ref: '#/node-output/JSON Parser Parse/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+          - set-variable:
+              name: Set variable 2
+              map:
+                $map: http://ibm.com/appconnect/map/v1
+                input:
+                  - variable: Foreachitem
+                    $ref: '#/block/For each/current-item'
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: api
+                    $ref: '#/trigger/api/parameters'
+                  - variable: Setvariable
+                    $ref: '#/block/For each/node-output/Set variable/response/payload'
+                  - variable: HTTPInvokemethod
+                    $ref: >-
+                      #/block/For each/node-output/HTTP Invoke
+                      method/response/payload
+                  - variable: HTTPInvokemethodMetadata
+                    $ref: '#/block/For each/node-output/HTTP Invoke method/response'
+                  - variable: JSONParserParse
+                    $ref: '#/node-output/JSON Parser Parse/response/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+                customSchemas:
+                  properties.`variable`:
+                    type: object
+                    properties:
+                      WorkTaskSent:
+                        type: object
+                        properties:
+                          mxpayload:
+                            type: object
+                            properties: {}
+                          mxresponse:
+                            type: object
+                            properties: {}
+                          TririgaInput:
+                            type: object
+                            properties: {}
+                          mxUrl:
+                            type: string
+                mappings:
+                  - variable:
+                      mappings:
+                        - WorkTaskSent:
+                            mappings:
+                              - TririgaInput:
+                                  expression: '$Request.data '
+                              - mxUrl:
+                                  template: '{{$api.mxUrl}}'
+                              - mxpayload:
+                                  expression: '$Setvariable.variable.mxWorkOder '
+                              - mxresponse:
+                                  expression: '$HTTPInvokemethodMetadata '
+  name: PLUSITRIWorkOrder2MX
+models:
+  triWO:
+    name: triWO
+    properties:
+      dummyID:
+        required: false
+        id: true
+        type: string
+      data:
+        required: false
+        id: false
+        type:
+          - type: {}
+      continueToken:
+        required: false
+        id: false
+        type: string
+      header:
+        required: false
+        id: false
+        type:
+          - string
+      totalRows:
+        required: false
+        id: false
+        type: string
+    plural: triWO
+    description: ' '
+    operations: {}
+  mxWO:
+    name: mxWO
+    properties:
+      dummyID:
+        required: false
+        id: true
+        type: string
+      woSent:
+        required: false
+        id: false
+        type:
+          - type: {}
+    plural: mxWO
+    description: ' '
+    operations:
+      syncworkorder: '#/integration/assemblies/assembly-1'
+    methods:
+      syncworkorder:
+        name: syncworkorder
+        display:
+          name: syncWorkOrder
+        accessType: WRITE
+        accepts:
+          - arg: data
+            type: triWO
+            http:
+              source: body
+          - arg: mxUrl
+            type: string
+            http:
+              source: query
+        returns:
+          arg: data
+          type: mxWO
+          root: true
+        http:
+          verb: POST
+          path: /syncworkorder
+        description: Send WORKORDER record from Tririga to Maximo.
